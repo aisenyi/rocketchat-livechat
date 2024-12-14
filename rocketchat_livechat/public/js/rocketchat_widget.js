@@ -18,6 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
 							j.src = '${response.message.server_url}/livechat/rocketchat-livechat.min.js?_=201903270000';
 							h.parentNode.insertBefore(j, h);
 						})(window, document, 'script', '${response.message.server_url}/livechat');
+
+						RocketChat(function() {
+							this.registerGuest({
+								name: '${frappe.session.user_fullname}',
+								email: '${frappe.session.user_email}'
+							});
+						});
 					`;
 					var script = d.createElement('script');
 					script.type = 'text/javascript';
