@@ -1,0 +1,1 @@
+import './rocketchat_widget.js';
