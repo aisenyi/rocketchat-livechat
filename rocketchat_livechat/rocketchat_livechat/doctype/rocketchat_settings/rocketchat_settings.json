@@ -8,7 +8,12 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
-  "server_url"
+  "server_url",
+  "whatsapp_integration_section",
+  "enable_whatsapp_support",
+  "whatsapp_phone_number_id",
+  "column_break_fkitp",
+  "whatsapp_access_token"
  ],
  "fields": [
   {
@@ -23,12 +28,37 @@
    "in_list_view": 1,
    "label": "Server URL",
    "reqd": 1
+  },
+  {
+   "fieldname": "whatsapp_integration_section",
+   "fieldtype": "Section Break",
+   "label": "WhatsApp Integration"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_whatsapp_support",
+   "fieldtype": "Check",
+   "label": "Enable WhatsApp Support"
+  },
+  {
+   "fieldname": "whatsapp_phone_number_id",
+   "fieldtype": "Data",
+   "label": "Phone Number ID"
+  },
+  {
+   "fieldname": "column_break_fkitp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "whatsapp_access_token",
+   "fieldtype": "Password",
+   "label": "Whatsapp Access Token"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-14 18:06:25.267458",
+ "modified": "2024-12-18 11:49:32.327370",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Settings",
