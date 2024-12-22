@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
 	frappe.call({
-		method: 'rocketchat_livechat.api.get_rocketchat_settings',
+		method: 'rocketchat_livechat.api.rocketchat.get_rocketchat_settings',
 		callback: function(response) {
 			if (response.message.enabled) {
 				(function(w, d) {
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
 							var h = d.getElementsByTagName(s)[0],
 								j = d.createElement(s);
 							j.async = true;
-							j.src = '${response.message.server_url}/livechat/rocketchat-livechat.min.js?_=201903270000';
+							j.src = '${response.message.server_url}/livechat/rocketchat-livechat.min.js';
 							h.parentNode.insertBefore(j, h);
 						})(window, document, 'script', '${response.message.server_url}/livechat');
 
