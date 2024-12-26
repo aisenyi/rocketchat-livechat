@@ -5,6 +5,7 @@ from requests import Request, Session
 from frappe.tests.utils import FrappeTestCase
 from unittest.mock import patch
 from rocketchat_livechat.api.whatsapp import whatsapp_webhook
+import requests
 
 class TestWhatsappWebhook(FrappeTestCase):
 	def test_whatsapp_webhook_trigger(self):
@@ -42,3 +43,17 @@ class TestWhatsappWebhook(FrappeTestCase):
 
 		# Assert that the response status code is 200
 		self.assertEqual(response.status_code, 200)
+
+	def test_whatsapp_webhook_verification(self):
+		url = 'http://frappe-ludovic/api/method/rocketchat_livechat.api.whatsapp.whatsapp_webhook'
+		params = {
+			'hub.challenge': 'CHALLENGE_TOKEN',
+			'hub.mode': 'subscribe',
+			'hub.verify_token': 'VERIFY_TOKEN'
+		}
+
+		# Send GET request with parameters
+		response = requests.get(url, params=params)
+
+		# Assert that the response text is the challenge token
+		self.assertEqual(response.text, 'CHALLENGE_TOKEN')
