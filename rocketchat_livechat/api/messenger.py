@@ -5,6 +5,12 @@ from frappe import request
 import frappe
 from werkzeug.wrappers import Response
 
+class FacebookMessenger():
+	def __init__(self):
+		settings = get_rocketchat_settings()
+		self.enabled = settings.enable_messenger_support
+
+
 @frappe.whitelist(allow_guest=True)
 def messenger_webhook():
 	if request.method == 'GET':
@@ -22,6 +28,17 @@ def messenger_webhook():
 				frappe.local.response['http_status_code'] = 405
 				frappe.local.response['message'] = {"error": "Invalid Verify Token"}
 				return frappe.local.response['message']
+	elif request.method == 'POST':
+		data = json.loads(request.data)
+		new_log = frappe.new_doc('Facebook Webhook Log')
+		new_log.update({
+			'request_data': str(data)
+		})
+		new_log.insert(ignore_permissions=True)
+		frappe.db.commit()
+		frappe.local.response['http_status_code'] = 200
+		frappe.local.response['message'] = "OK"
+		return frappe.local.response['message']
 	else:
 		# Respond with a 405 Method Not Allowed status for non-POST requests
 		frappe.local.response['http_status_code'] = 405
