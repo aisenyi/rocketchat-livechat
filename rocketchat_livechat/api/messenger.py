@@ -3,7 +3,7 @@ import json
 from rocketchat_livechat.api.rocketchat import get_rocketchat_settings
 from frappe import request
 import frappe
-from requests import Response
+from werkzeug.wrappers import Response
 
 @frappe.whitelist(allow_guest=True)
 def messenger_webhook():
