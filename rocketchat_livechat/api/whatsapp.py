@@ -107,7 +107,7 @@ def whatsapp_webhook():
 			frappe.local.response['message'] = {"status": "OK"}
 			return frappe.local.response["message"]
 		except Exception as e:
-			frappe.log_error(message=str(e), title="Whatsapp Webhook error")
+			frappe.log_error(message=frappe.get_traceback(), title="Whatsapp Webhook error")
 			frappe.local.response['http_status_code'] = 500
 			frappe.local.response['message'] = {"error": e}
 			return frappe.local.response["message"]
