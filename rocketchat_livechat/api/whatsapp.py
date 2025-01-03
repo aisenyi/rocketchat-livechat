@@ -79,7 +79,7 @@ def whatsapp_webhook():
 					message = message.get('text', {}).get('body')
 
 					room_exists = frappe.db.exists("Rocketchat Livechat User", 
-									{"id_type": "Phone", "source": "Whatsapp", "id": sender})
+									{"id_type": "Phone", "source": "Whatsapp", "id": sender, "closed": 0})
 					rc = RocketChat()
 					if room_exists:
 						room_id, visitor_token = frappe.db.get_value("Rocketchat Livechat User", 

@@ -17,7 +17,9 @@
   "whatsapp_verification_token",
   "facebook_messenger_settings",
   "enable_messenger_support",
-  "messenger_verification_token"
+  "messenger_verification_token",
+  "column_break_ahuww",
+  "facebook_access_token"
  ],
  "fields": [
   {
@@ -78,12 +80,21 @@
    "fieldname": "messenger_verification_token",
    "fieldtype": "Data",
    "label": "Messenger Webhook Verification Token"
+  },
+  {
+   "fieldname": "column_break_ahuww",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "facebook_access_token",
+   "fieldtype": "Password",
+   "label": "Facebook Access Token"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-12-29 18:10:07.327558",
+ "modified": "2025-01-03 10:55:54.559935",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Settings",

@@ -11,7 +11,8 @@
   "id",
   "source",
   "room_id",
-  "visitor_token"
+  "visitor_token",
+  "closed"
  ],
  "fields": [
   {
@@ -19,7 +20,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "ID Type",
-   "options": "Phone\nEmail",
+   "options": "Phone\nEmail\nID",
    "reqd": 1
   },
   {
@@ -49,11 +50,17 @@
    "fieldtype": "Data",
    "label": "Visitor Token",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "closed",
+   "fieldtype": "Check",
+   "label": "Closed"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-20 23:30:31.149383",
+ "modified": "2025-01-03 12:24:25.199335",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Livechat User",
