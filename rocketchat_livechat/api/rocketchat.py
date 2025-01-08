@@ -105,6 +105,8 @@ def get_rocketchat_settings():
 @frappe.whitelist(allow_guest=True)
 def rocketchat_webhook():
 	from rocketchat_livechat.api.whatsapp import WhatsAppAPI
+	from rocketchat_livechat.api.messenger import FacebookMessenger
+
 	if request.method == 'POST':
 		data = json.loads(request.data)
 
@@ -137,6 +139,12 @@ def rocketchat_webhook():
 						frappe.local.response['http_status_code'] = 200
 						frappe.local.response['message'] = {"status": "OK"}
 						return frappe.local.response["message"]
+			elif source == "Facebook Messenger":
+				if 'agentId' in latest_message:
+					user_id = frappe.db.get_value("Rocketchat Livechat User", room, "id")
+					messenger = FacebookMessenger()
+					messenger.send_to_messenger(user_id, latest_message['msg'])
+
 			
 		# Check if the room was closed
 		if data.get('closedAt') and data.get('closedAt') != "":

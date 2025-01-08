@@ -21,20 +21,20 @@ class TestFacebookWebhook(FrappeTestCase):
 	def test_messenger_webhook(self):
 		url = 'http://frappe-ludovic/api/method/rocketchat_livechat.api.messenger.messenger_webhook'
 		payload = {
-			"sender":{
-				"id":"<PSID>"
-			},
-			"recipient":{
-				"id":"<PAGE_ID>"
-			},
-			"timestamp":1458692752478,
-			"message":{
-				"mid":"mid.1457764197618:41d102a3e1ae206a38",
-				"text":"hello, world!",
-				"quick_reply": {
-				"payload": "<DEVELOPER_DEFINED_PAYLOAD>"
-				}
-			}
+			'object': 'page', 
+			'entry': [{
+				'time': 1735507605534, 
+	 			'id': '1701202886814226', 
+				'messaging': [{
+					'sender': {'id': '9092096187479591'}, 
+					'recipient': {'id': '1701202886814226'}, 
+					'timestamp': 1735507604307, 
+					'message': {
+						'mid': 'm_WqcpYUB_-JwEAv3wNgRyfQVKSY3mgT5RNHvPH8ogyBsu8-s9vWron73cgni4wt0lS7PU76gMN7ezjtYf9xuWpA', 
+						'text': 'Just a test'
+					}
+				}]
+			}]
 		}
 		headers = {'Content-Type': 'application/json'}
 		request = Request('POST', url, headers=headers, data=json.dumps(payload))

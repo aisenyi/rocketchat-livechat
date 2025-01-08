@@ -19,6 +19,7 @@
   "enable_messenger_support",
   "messenger_verification_token",
   "column_break_ahuww",
+  "facebook_page_id",
   "facebook_access_token"
  ],
  "fields": [
@@ -89,12 +90,17 @@
    "fieldname": "facebook_access_token",
    "fieldtype": "Password",
    "label": "Facebook Access Token"
+  },
+  {
+   "fieldname": "facebook_page_id",
+   "fieldtype": "Data",
+   "label": "Facebook Page ID"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-03 10:55:54.559935",
+ "modified": "2025-01-08 22:26:15.502471",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Settings",
