@@ -145,7 +145,7 @@ scheduler_events = {
 # 	],
 	"cron": {
 		"*/5 * * * *": [
-			"metactical.custom_scripts.frappe.document.clear_queued_docs"
+			"rocketchat_livechat.api.rocketchat.send_queued_messages"
 		]
 	}
 }
