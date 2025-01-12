@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-01-11 20:51:08.117966",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "message",
+  "message_date",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "message",
+   "fieldtype": "Long Text",
+   "in_list_view": 1,
+   "label": "Message"
+  },
+  {
+   "fieldname": "message_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Date"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Queued\nSent"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-01-11 20:54:13.287950",
+ "modified_by": "Administrator",
+ "module": "Rocketchat Livechat",
+ "name": "Rocketchat Message",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

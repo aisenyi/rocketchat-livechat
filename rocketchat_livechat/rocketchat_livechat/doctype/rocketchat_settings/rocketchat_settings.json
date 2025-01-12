@@ -9,6 +9,8 @@
  "field_order": [
   "enabled",
   "server_url",
+  "rocketchat_email",
+  "rocketchat_password",
   "whatsapp_integration_section",
   "enable_whatsapp_support",
   "whatsapp_phone_number_id",
@@ -89,12 +91,29 @@
    "fieldname": "facebook_access_token",
    "fieldtype": "Password",
    "label": "Facebook Access Token"
+  },
+  {
+   "fieldname": "facebook_page_id",
+   "fieldtype": "Data",
+   "label": "Facebook Page ID"
+  },
+  {
+   "fieldname": "rocketchat_email",
+   "fieldtype": "Data",
+   "label": "Rocketchat User Email",
+   "options": "Email",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rocketchat_password",
+   "fieldtype": "Password",
+   "label": "Rocketchat User Password"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-03 10:55:54.559935",
+ "modified": "2025-01-11 23:42:33.197383",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Settings",
