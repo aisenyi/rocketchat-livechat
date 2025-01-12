@@ -15,45 +15,35 @@ class RocketChat():
 									{"id_type": id_type, "source": source, "id": id, "closed": 0})
 
 		if room_exists:
-			print("in here 1")
 			room_doc = frappe.get_doc("Rocketchat Livechat User", room_exists)
 			visitor_token = room_doc.visitor_token
 
 			if room_doc.room_id is None or room_doc.room_id != "":
-				print("in here 2")
 				room = self.create_room(room_doc.visitor_token, room_doc.id_type, room_doc.id, room_doc.source, False, room_exists)
-				print({"room": room})
 				if room.get("success"):
-					print("In here 3")
 					room_id = room.get("room_id")
 					room_doc = room.get("room_doc")
 				else:
 					room_doc = room.get("room_doc")
 			else:
-				print("In here 4")
 				room_id = room_doc.get("room_id")
 		else:
-			print("In here 5")
 			visitor, visitor_token = self.create_visitor(visitor_name=visitor_info.get("visitor_name"), 
 												visitor_phone=visitor_info.get("visitor_phone"), 
 												visitor_email=visitor_info.get("visitor_email"))
 			if visitor.get("success"):
-				print("In here 6")
 				message_sent = False
 				room = self.create_room(visitor_token, id_type, id, source)
 
 				room_doc = room.get("room_doc")
 				if room.get("success"):
-					print("in here 7")
 					room_id = room.get("room_id")
 
 		if room_id is not None:
-			print("In here 8")
 			message = self.send_message_to_room(room_id, visitor_token, msg)
 			if message.get("success"):
 				message_sent = True
 		else:
-			print("In here 9")
 			message_sent = False
 
 
@@ -148,7 +138,7 @@ class RocketChat():
 				room_doc = frappe.get_doc("Rocketchat Livechat User", user)
 				if room_id is not None:
 					room_doc.update({"room_id": room_id})
-				room_doc.save()
+				room_doc.save(ignore_permissions=True)
 			return {"success": success, "room_id": room_id, "room_doc": room_doc}
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error")
@@ -196,7 +186,6 @@ class RocketChat():
 
 			if response.status_code == 200:
 				response_data = response.json()
-				print(response_data)
 				return response_data.get("success", False)
 			else:
 				raise Exception(f"""Failed to check online agents. 

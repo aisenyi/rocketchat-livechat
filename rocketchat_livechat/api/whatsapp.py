@@ -77,32 +77,9 @@ def whatsapp_webhook():
 					message = change.get("value").get("messages", [])[0]
 					sender = message.get('from')
 					message = message.get('text', {}).get('body')
-
-					room_exists = frappe.db.exists("Rocketchat Livechat User", 
-									{"id_type": "Phone", "source": "Whatsapp", "id": sender, "closed": 0})
+					frappe.set_user("Administrator")
 					rc = RocketChat()
-					if room_exists:
-						room_id, visitor_token = frappe.db.get_value("Rocketchat Livechat User", 
-													room_exists, ["room_id", "visitor_token"])
-						rc.send_message_to_room(room_id, visitor_token, message)
-					else:
-						visitor, visitor_token = rc.create_visitor(visitor_name=sender, visitor_phone=sender)
-						if visitor.get("success"):
-							room = rc.create_room(visitor_token)
-
-							if room.get("success"):
-								room_id = room.get("room", {}).get("_id")
-								if room_id:
-									new_user = frappe.new_doc("Rocketchat Livechat User")
-									new_user.update({
-										"id_type": "Phone",
-										"id": sender,
-										"source": "Whatsapp",
-										"room_id": room_id,
-										"visitor_token": visitor_token
-									})
-									new_user.insert(ignore_permissions=True)
-								rc.send_message_to_room(room_id, visitor_token, message)
+					rc.send_message("Whatsapp", message, "Phone", sender, {"visitor_phone": sender})
 			frappe.local.response['http_status_code'] = 200
 			frappe.local.response['message'] = {"status": "OK"}
 			return frappe.local.response["message"]
