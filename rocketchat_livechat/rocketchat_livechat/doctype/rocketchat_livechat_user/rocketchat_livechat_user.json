@@ -10,9 +10,12 @@
   "id_type",
   "id",
   "source",
+  "column_break_9au7q",
   "room_id",
   "visitor_token",
-  "closed"
+  "closed",
+  "messages_section",
+  "messages"
  ],
  "fields": [
   {
@@ -42,8 +45,7 @@
    "fieldname": "room_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Room ID",
-   "reqd": 1
+   "label": "Room ID"
   },
   {
    "fieldname": "visitor_token",
@@ -56,11 +58,25 @@
    "fieldname": "closed",
    "fieldtype": "Check",
    "label": "Closed"
+  },
+  {
+   "fieldname": "column_break_9au7q",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "messages_section",
+   "fieldtype": "Section Break",
+   "label": "Messages"
+  },
+  {
+   "fieldname": "messages",
+   "fieldtype": "Table",
+   "options": "Rocketchat Message"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-03 12:24:25.199335",
+ "modified": "2025-01-11 22:32:59.065071",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Livechat User",

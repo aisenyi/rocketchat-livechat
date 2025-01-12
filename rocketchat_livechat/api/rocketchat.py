@@ -8,6 +8,52 @@ class RocketChat():
 	def __init__(self):
 		self.settings = frappe.get_single("Rocketchat Settings")
 
+	def send_message(self, source, msg, id_type, id, visitor_info):
+		room_id = None
+		visitor_token = None
+		room_exists = frappe.db.exists("Rocketchat Livechat User", 
+									{"id_type": id_type, "source": source, "id": id, "closed": 0})
+
+		if room_exists:
+			room_doc = frappe.get_doc("Rocketchat Livechat User", room_exists)
+			visitor_token = room_doc.visitor_token
+
+			if room_doc.room_id is None or room_doc.room_id != "":
+				room = self.create_room(room_doc.visitor_token, room_doc.id_type, room_doc.id, room_doc.source, False, room_exists)
+				if room.get("success"):
+					room_id = room.get("room_id")
+					room_doc = room.get("room_doc")
+			else:
+				room_id = room_doc.get("room_id")
+		else:
+			visitor, visitor_token = self.create_visitor(visitor_name=visitor_info.get("visitor_name"), 
+												visitor_phone=visitor_info.get("visitor_phone"), 
+												visitor_email=visitor_info.get("visitor_email"))
+			if visitor.get("success"):
+				message_sent = False
+				room = self.create_room(visitor_token, id_type, id, source)
+
+				room_doc = room.get("room_doc")
+				if room.get("success"):
+					room_id = room.get("room_id")
+
+		if room_id is not None:
+			message = self.send_message_to_room(room_id, visitor_token, msg)
+			if message.get("success"):
+				message_sent = True
+		else:
+			message_sent = False
+
+
+		room_doc.append("messages", {
+			"message": msg,
+			"message_date": frappe.utils.now(),
+			"status": "Queued" if not message_sent else "Sent"
+		})
+		room_doc.save()
+
+				
+
 	def create_visitor(self, visitor_name=None, visitor_email=None, visitor_phone=None):
 		# Rocket.Chat server URL
 		rocketchat_url = self.settings.server_url
@@ -47,7 +93,7 @@ class RocketChat():
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error")
 
-	def create_room(self, visitor_token):
+	def create_room(self, visitor_token, id_type, id, source, new_user=True, user=None):
 		rocketchat_url = self.settings.server_url
 		create_room_endpoint = f"{rocketchat_url}/api/v1/livechat/room"
 
@@ -60,14 +106,38 @@ class RocketChat():
 		}
 
 		try:
+			room_id = None
+			success = False
 			response = requests.get(f'{create_room_endpoint}', headers=headers, params=payload)
 
 			if response.status_code == 200:
 				response_data = response.json()
-				return response_data
+				room_id = response_data.get("room", {}).get("_id")
+				success = True
+			elif response.status_code == 400 and response.json().get("errorType") == "no-agent-online":
+				success = False
 			else:
 				raise Exception(f"""Failed to create live chat room. 
 						Status Code: {response.status_code}, Response: {response.json()}""")
+			
+			if new_user:
+				room_doc = frappe.new_doc("Rocketchat Livechat User")
+				room_doc.update({
+					"id_type": id_type,
+					"id": id,
+					"source": source,
+					"visitor_token": visitor_token
+				})
+
+				if room_id is not None:
+					room_doc.update({"room_id": room_id})
+				room_doc.insert(ignore_permissions=True)
+			else:
+				room_doc = frappe.get_doc("Rocketchat Livechat User", user)
+				if room_id is not None:
+					room_doc.update({"room_id": room_id})
+				room_doc.save()
+			return {"success": success, "room_id": room_id, "room_doc": room_doc}
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error")
 
@@ -96,6 +166,60 @@ class RocketChat():
 						Status Code: {response.status_code}, Response: {response.json()}""")
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error")
+
+	def check_online(self):
+		rocketchat_url = self.settings.server_url
+		check_online_endpoint = f"{rocketchat_url}/api/v1/omnichannel/agents/available"
+
+		user_info = self.login()
+
+		headers = {
+			"Content-Type": "application/json",
+			"X-Auth-Token": user_info.get("auth_token"),
+			"X-User-Id": user_info.get("user_id")
+		}
+
+		try:
+			response = requests.get(check_online_endpoint, headers=headers)
+
+			if response.status_code == 200:
+				response_data = response.json()
+				print(response_data)
+				return response_data.get("success", False)
+			else:
+				raise Exception(f"""Failed to check online agents. 
+						Status Code: {response.status_code}, Response: {response.json()}""")
+		except Exception as e:
+			frappe.log_error(message=str(e), title="Rocketchat API error")
+			return False
+		
+	def login(self):
+		rocketchat_url = self.settings.server_url
+		login_endpoint = f"{rocketchat_url}/api/v1/login"
+
+		headers = {
+			"Content-Type": "application/json"
+		}
+
+		payload = {
+			"user": self.settings.rocketchat_email,
+			"password": self.settings.get_password("rocketchat_password")
+		}
+
+		try:
+			response = requests.post(login_endpoint, headers=headers, json=payload)
+
+			if response.status_code == 200:
+				response_data = response.json()
+				user_id = response_data.get("data", {}).get("userId")
+				auth_token = response_data.get("data", {}).get("authToken")
+				return {"user_id": user_id, "auth_token": auth_token}
+			else:
+				raise Exception(f"""Failed to login. 
+						Status Code: {response.status_code}, Response: {response.json()}""")
+		except Exception as e:
+			frappe.log_error(message=str(e), title="Rocketchat API error")
+			return None
 
 @frappe.whitelist()
 def get_rocketchat_settings():
@@ -163,3 +287,14 @@ def rocketchat_webhook():
 		frappe.local.response['http_status_code'] = 405
 		frappe.local.response['message'] = {"error": "Method Not Allowed"}
 		return frappe.local.response['message']
+
+def test():
+	source = "Whatsapp" 
+	msg = "Just testing 2" 
+	id_type = "Phone"
+	id = "+255769925950" 
+	visitor_info = {}
+	chat = RocketChat()
+	res = chat.send_message(source, msg, id_type, id, visitor_info)
+	#res = chat.check_online()
+	print(res)
