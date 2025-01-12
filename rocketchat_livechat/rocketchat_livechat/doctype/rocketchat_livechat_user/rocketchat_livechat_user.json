@@ -14,6 +14,12 @@
   "room_id",
   "visitor_token",
   "closed",
+  "users_information_section",
+  "user_name",
+  "column_break_56zjq",
+  "user_phone",
+  "column_break_vpaih",
+  "user_email",
   "messages_section",
   "messages"
  ],
@@ -72,11 +78,39 @@
    "fieldname": "messages",
    "fieldtype": "Table",
    "options": "Rocketchat Message"
+  },
+  {
+   "fieldname": "users_information_section",
+   "fieldtype": "Section Break",
+   "label": "User's Information"
+  },
+  {
+   "fieldname": "user_name",
+   "fieldtype": "Data",
+   "label": "User's Name"
+  },
+  {
+   "fieldname": "column_break_56zjq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user_phone",
+   "fieldtype": "Data",
+   "label": "User's Phone"
+  },
+  {
+   "fieldname": "column_break_vpaih",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user_email",
+   "fieldtype": "Data",
+   "label": "User's Email"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-11 22:32:59.065071",
+ "modified": "2025-01-12 17:40:45.459227",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Livechat User",
