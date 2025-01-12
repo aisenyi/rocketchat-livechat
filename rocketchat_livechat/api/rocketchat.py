@@ -23,6 +23,8 @@ class RocketChat():
 				if room.get("success"):
 					room_id = room.get("room_id")
 					room_doc = room.get("room_doc")
+				else:
+					room_doc = room.get("room_doc")
 			else:
 				room_id = room_doc.get("room_id")
 		else:
@@ -136,7 +138,7 @@ class RocketChat():
 				room_doc = frappe.get_doc("Rocketchat Livechat User", user)
 				if room_id is not None:
 					room_doc.update({"room_id": room_id})
-				room_doc.save()
+				room_doc.save(ignore_permissions=True)
 			return {"success": success, "room_id": room_id, "room_doc": room_doc}
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error")
@@ -184,7 +186,6 @@ class RocketChat():
 
 			if response.status_code == 200:
 				response_data = response.json()
-				print(response_data)
 				return response_data.get("success", False)
 			else:
 				raise Exception(f"""Failed to check online agents. 
@@ -287,14 +288,33 @@ def rocketchat_webhook():
 		frappe.local.response['http_status_code'] = 405
 		frappe.local.response['message'] = {"error": "Method Not Allowed"}
 		return frappe.local.response['message']
-
-def test():
-	source = "Whatsapp" 
-	msg = "Just testing 2" 
-	id_type = "Phone"
-	id = "+255769925950" 
-	visitor_info = {}
-	chat = RocketChat()
-	res = chat.send_message(source, msg, id_type, id, visitor_info)
-	#res = chat.check_online()
-	print(res)
+	
+def send_queued_messages():
+	messages = frappe.db.sql("""
+				SELECT
+					messages.message, user.id_type, user.id, user.source,
+					user.room_id, user.visitor_token, messages.parent AS user_docname,
+					messages.name AS message_docname
+				FROM 
+					`tabRocketchat Message` AS messages
+				LEFT JOIN
+					`tabRocketchat Livechat User` user ON user.name = messages.parent
+				WHERE
+					messages.status = 'Queued' AND user.closed <> 1
+				ORDER BY messages.message_date ASC
+				""", as_dict=1)
+	
+	rc = RocketChat()
+	for message in messages:
+		if message.room_id is not None and message.room_id != "":
+			res = rc.send_message_to_room(message.room_id, message.visitor_token, message.message)
+			if res.get("success"):
+				frappe.db.set_value("Rocketchat Message", message.message_docname, "status", "Sent")
+		else:
+			room = rc.create_room(message.visitor_token, message.id_type, message.id, 
+				  message.source, False, message.user_docname)
+			if room.get("success"):
+				frappe.db.set_value("Rocketchat Livechat User", message.user_docname, "room_id", room.get("room_id"))
+				res = rc.send_message_to_room(room.get("room_id"), message.visitor_token, message.message)
+				if res.get("success"):
+					frappe.db.set_value("Rocketchat Message", message.message_docname, "status", "Sent")

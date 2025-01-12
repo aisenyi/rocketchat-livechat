@@ -127,7 +127,7 @@ app_include_js = "rocketchat_livechat.bundle.js"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
+scheduler_events = {
 # 	"all": [
 # 		"rocketchat_livechat.tasks.all"
 # 	],
@@ -143,7 +143,12 @@ app_include_js = "rocketchat_livechat.bundle.js"
 # 	"monthly": [
 # 		"rocketchat_livechat.tasks.monthly"
 # 	],
-# }
+	"cron": {
+		"*/5 * * * *": [
+			"metactical.custom_scripts.frappe.document.clear_queued_docs"
+		]
+	}
+}
 
 # Testing
 # -------
