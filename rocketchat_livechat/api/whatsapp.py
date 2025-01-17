@@ -43,6 +43,16 @@ class WhatsAppAPI:
 			return response.json()
 		except requests.exceptions.RequestException as e:
 			return {'error': str(e)}
+		
+	def download_media(self, media_url):
+		try:
+			response = requests.get(media_url, headers=self.headers)
+			response.raise_for_status()
+			return response.content
+		except requests.exceptions.RequestException as e:
+			frappe.log_error(message=str(e), title="WhatsApp Media Download Error")
+			return None
+		
 
 @frappe.whitelist(allow_guest=True)
 def whatsapp_webhook():
@@ -71,15 +81,42 @@ def whatsapp_webhook():
 			# }
 			data = json.loads(request.data)
 
+			log = frappe.new_doc("Whatsapp Webhooh Log")
+			log.update({"request_data": str(data)})
+			log.insert(ignore_permissions=True)
+			frappe.db.commit()
+
 			changes = data.get("entry")[0].get("changes")
 			for change in changes:
 				if change.get("field") == "messages":
 					message = change.get("value").get("messages", [])[0]
 					sender = message.get('from')
-					message = message.get('text', {}).get('body')
-					frappe.set_user("Administrator")
+					message_type = message.get('type')
+
+					if message_type == 'image':
+						media_id = message.get('image', {}).get('id')
+						caption = message.get('image', {}).get('caption')
+						mime_type = message.get('image', {}).get('mime_type')
+						media_url = f"https://graph.facebook.com/v11.0/{media_id}"
+						whatsapp_api = WhatsAppAPI()
+						media_content = whatsapp_api.download_media(media_url)
+
+						if media_content:
+							message = {
+								"type": "media",
+								"media": media_content,
+								"text": caption,
+								"media_type": mime_type
+							}
+					elif message_type == 'text':
+						message = {
+							"type": "text",
+							"text": message.get('text', {}).get('body')
+						}
+					
 					rc = RocketChat()
-					rc.send_message("Whatsapp", message, "Phone", sender, {"visitor_phone": sender})
+					rc.send_message("Whatsapp", message_type, message, "Phone", 
+						sender, {"visitor_phone": sender})
 			frappe.local.response['http_status_code'] = 200
 			frappe.local.response['message'] = {"status": "OK"}
 			return frappe.local.response["message"]
