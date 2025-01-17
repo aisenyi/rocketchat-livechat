@@ -81,7 +81,7 @@ def whatsapp_webhook():
 			# }
 			data = json.loads(request.data)
 
-			log = frappe.new_doc("Whatsapp Webhooh Log")
+			log = frappe.new_doc("Whatsapp Webhook Log")
 			log.update({"request_data": str(data)})
 			log.insert(ignore_permissions=True)
 			frappe.db.commit()
