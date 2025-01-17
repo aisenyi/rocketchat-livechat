@@ -3,14 +3,16 @@ import requests
 import uuid
 import json
 from frappe import request
+from frappe.utils import get_files_path
 
 class RocketChat():
 	def __init__(self):
 		self.settings = frappe.get_single("Rocketchat Settings")
 
-	def send_message(self, source, msg, id_type, id, visitor_info):
+	def send_message(self, source, msg_type, msg, id_type, id, visitor_info):
 		room_id = None
 		visitor_token = None
+		file_path = None
 		room_exists = frappe.db.exists("Rocketchat Livechat User", 
 									{"id_type": id_type, "source": source, "id": id, "closed": 0})
 
@@ -40,15 +42,22 @@ class RocketChat():
 					room_id = room.get("room_id")
 
 		if room_id is not None:
-			message = self.send_message_to_room(room_id, visitor_token, msg)
-			if message.get("success"):
-				message_sent = True
+			if msg_type == "image":
+				file_path = self.save_media(msg.get("media"), msg.get("media_type"), room_doc.docname)
+				message = self.upload_file_to_livechat(room_id, visitor_token, file_path)
+				if message.get("success"):
+					message_sent = True
+			elif msg_type == "text":
+				message = self.send_message_to_room(room_id, visitor_token, msg.get("text"))
+				if message.get("success"):
+					message_sent = True
 		else:
 			message_sent = False
 
 
 		room_doc.append("messages", {
-			"message": msg,
+			"message": msg.get("text"),
+			"attachment": file_path,
 			"message_date": frappe.utils.now(),
 			"status": "Queued" if not message_sent else "Sent"
 		})
@@ -221,6 +230,74 @@ class RocketChat():
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error")
 			return None
+		
+	def save_media(self, media_content, media_type, docname):
+		try:
+			extension = {
+				'image/jpeg': 'jpg',
+				'image/png': 'png',
+				'image/gif': 'gif',
+				'video/mp4': 'mp4',
+				'audio/mpeg': 'mp3',
+				'application/pdf': 'pdf',
+				'application/msword': 'doc',
+				'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+				'application/vnd.ms-excel': 'xls',
+				'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+				'text/plain': 'txt',
+				'text/csv': 'csv',
+				'application/zip': 'zip',
+				'application/x-rar-compressed': 'rar',
+				'application/vnd.ms-powerpoint': 'ppt',
+				'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+				'image/heic': 'heic',
+				'image/heif': 'heif'
+			}.get(media_type, 'bin')
+			file_name = f"{file_name}.{extension.get(media_type)}"
+			file_path = get_files_path(f"{file_name}", is_private=True)
+
+			with open(file_path, 'wb') as f:
+				f.write(media_content)
+			
+			file_doc = frappe.new_doc('File')
+			file_doc.update({
+				'file_name': f"{file_name}",
+				'file_url': file_path.replace(frappe.get_site_path(), ''),
+				'is_private': 1,
+				'folder': 'Home/Attachments',
+				'attached_to_doctype': 'Rocketchat Livechat User',
+				'attached_to_name': docname,
+				'attached_to_field': "attachment",
+				'file_size': len(media_content),
+			})
+			file_doc.insert(ignore_permissions=True)
+			return file_path
+		except IOError as e:
+			frappe.log_error(message=str(e), title="WhatsApp Media Save Error")
+			return False
+		
+	def upload_file_to_livechat(self, room_id, visitor_token, file_path, description):
+		upload_endpoint = f"{self.server_url}/api/v1/livechat/upload/{room_id}"
+
+		payload = {
+			"file": file_path,
+			"description": description
+		}
+
+		headers = {
+			"X-Visitor-Token": visitor_token
+		}
+
+		try:
+			response = requests.post(upload_endpoint, headers=headers, json=payload)
+			response.raise_for_status()
+			return response.json()
+		except requests.exceptions.RequestException as e:
+			frappe.log_error(
+				message=f"File upload failed for room {room_id}. Error: {e}",
+				title="RocketChat File Upload Error"
+			)
+			return {"success": False, "error": str(e)}
 
 @frappe.whitelist()
 def get_rocketchat_settings():
