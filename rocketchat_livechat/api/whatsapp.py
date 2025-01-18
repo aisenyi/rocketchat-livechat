@@ -46,8 +46,16 @@ class WhatsAppAPI:
 		
 	def download_media(self, media_url):
 		try:
-			response = requests.get(media_url, headers=self.headers)
+			url = requests.get(media_url, headers=self.headers)
+			url.raise_for_status()
+			#return url.json()
+			headers = {
+				'Authorization': f'Bearer {self.access_token}',
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'
+			}
+			response = requests.get(url.json().get("url"), headers=headers)
 			response.raise_for_status()
+			print(response)
 			return response.content
 		except requests.exceptions.RequestException as e:
 			frappe.log_error(message=str(e), title="WhatsApp Media Download Error")
@@ -59,26 +67,6 @@ def whatsapp_webhook():
 	from rocketchat_livechat.api.rocketchat import RocketChat
 	if request.method == 'POST':
 		try:
-			# data = {
-			# 	"object": "whatsapp_business_account",
-			# 	"entry": [{
-			# 		"id": "WHATSAPP_BUSINESS_ACCOUNT_ID",
-			# 		"changes": [{
-			# 			"value": {
-			# 				"messages": [{
-			# 					"from": "+255769925954",
-			# 					"id": "wamid.ID",
-			# 					"timestamp": "TIMESTAMP",
-			# 					"text": {
-			# 						"body": "Second test message, woohoo!"
-			# 					},
-			# 					"type": "text"
-			# 				}]
-			# 			},
-			# 			"field": "messages"
-			# 		}]
-			# 	}]
-			# }
 			data = json.loads(request.data)
 
 			log = frappe.new_doc("Whatsapp Webhook Log")
@@ -97,8 +85,9 @@ def whatsapp_webhook():
 						media_id = message.get('image', {}).get('id')
 						caption = message.get('image', {}).get('caption')
 						mime_type = message.get('image', {}).get('mime_type')
-						media_url = f"https://graph.facebook.com/v11.0/{media_id}"
+						media_url = f"https://graph.facebook.com/v21.0/{media_id}"
 						whatsapp_api = WhatsAppAPI()
+						whatsapp_api.access_token
 						media_content = whatsapp_api.download_media(media_url)
 
 						if media_content:

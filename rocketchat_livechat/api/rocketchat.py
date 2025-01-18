@@ -13,6 +13,7 @@ class RocketChat():
 		room_id = None
 		visitor_token = None
 		file_path = None
+		message_sent = False
 		room_exists = frappe.db.exists("Rocketchat Livechat User", 
 									{"id_type": id_type, "source": source, "id": id, "closed": 0})
 
@@ -43,8 +44,8 @@ class RocketChat():
 
 		if room_id is not None:
 			if msg_type == "image":
-				file_path = self.save_media(msg.get("media"), msg.get("media_type"), room_doc.docname)
-				message = self.upload_file_to_livechat(room_id, visitor_token, file_path)
+				file_path = self.save_media(msg.get("media"), msg.get("media_type"), room_doc.name)
+				message = self.upload_file_to_livechat(room_id, visitor_token, file_path, msg.get("caption"))
 				if message.get("success"):
 					message_sent = True
 			elif msg_type == "text":
@@ -253,17 +254,22 @@ class RocketChat():
 				'image/heic': 'heic',
 				'image/heif': 'heif'
 			}.get(media_type, 'bin')
-			file_name = f"{file_name}.{extension.get(media_type)}"
-			file_path = get_files_path(f"{file_name}", is_private=True)
+
+			file_name = f"{str(uuid.uuid4())}.{extension}"
+			file_path = get_files_path(f"{file_name}", is_private=False)
 
 			with open(file_path, 'wb') as f:
 				f.write(media_content)
+
+			file_path = file_path.replace('./', "http://")
+			file_path = file_path.replace('/public/', '/')
+			print({"file_pathe": file_path})
 			
 			file_doc = frappe.new_doc('File')
 			file_doc.update({
 				'file_name': f"{file_name}",
-				'file_url': file_path.replace(frappe.get_site_path(), ''),
-				'is_private': 1,
+				'file_url': file_path,
+				'is_private': 0,
 				'folder': 'Home/Attachments',
 				'attached_to_doctype': 'Rocketchat Livechat User',
 				'attached_to_name': docname,
@@ -277,7 +283,7 @@ class RocketChat():
 			return False
 		
 	def upload_file_to_livechat(self, room_id, visitor_token, file_path, description):
-		upload_endpoint = f"{self.server_url}/api/v1/livechat/upload/{room_id}"
+		upload_endpoint = f"{self.settings.server_url}api/v1/livechat/upload/{room_id}"
 
 		payload = {
 			"file": file_path,
