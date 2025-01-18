@@ -48,7 +48,7 @@ class WhatsAppAPI:
 		try:
 			url = requests.get(media_url, headers=self.headers)
 			url.raise_for_status()
-			#return url.json()
+			#return url.json())
 			headers = {
 				'Authorization': f'Bearer {self.access_token}',
 				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'
@@ -67,6 +67,40 @@ def whatsapp_webhook():
 	from rocketchat_livechat.api.rocketchat import RocketChat
 	if request.method == 'POST':
 		try:
+			# data = {
+			# 	'object': 'whatsapp_business_account',
+			# 	'entry': [{
+			# 		'id': '486606171206665',
+			# 		'changes': [{
+			# 			'value': {
+			# 				'messaging_product': 'whatsapp',
+			# 				'metadata': {
+			# 					'display_phone_number': '15551725501',
+			# 					'phone_number_id': '469448259592538'
+			# 				},
+			# 				'contacts': [{
+			# 					'profile': {
+			# 						'name': 'Aisenyi'
+			# 					},
+			# 					'wa_id': '255769925950'
+			# 				}],
+			# 				'messages': [{
+			# 					'from': '255769925950',
+			# 					'id': 'wamid.HBgMMjU1NzY5OTI1OTUwFQIAEhgUM0ExMjA3RkIwNjY3QTZCRERDNkQA',
+			# 					'timestamp': '1737157852',
+			# 					'type': 'image',
+			# 					'image': {
+			# 						'mime_type': 'image/jpeg',
+			# 						'sha256': 'UNpI+r0v2TuiJrSvMPWiJY9/YSGsGo4FAvVsTeum8bs=',
+			# 						'id': '1582293072657037'
+			# 					}
+			# 				}]
+			# 			},
+			# 			'field': 'messages'
+			# 		}]
+			# 	}]
+			# }
+
 			data = json.loads(request.data)
 
 			log = frappe.new_doc("Whatsapp Webhook Log")

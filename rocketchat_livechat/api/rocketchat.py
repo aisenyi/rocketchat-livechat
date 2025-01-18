@@ -45,7 +45,7 @@ class RocketChat():
 		if room_id is not None:
 			if msg_type == "image":
 				file_path = self.save_media(msg.get("media"), msg.get("media_type"), room_doc.name)
-				message = self.upload_file_to_livechat(room_id, visitor_token, file_path, msg.get("caption"))
+				message = self.upload_file_to_livechat(room_id, visitor_token, room_doc.name, msg.get("caption"), msg.get("media"))
 				if message.get("success"):
 					message_sent = True
 			elif msg_type == "text":
@@ -63,9 +63,7 @@ class RocketChat():
 			"status": "Queued" if not message_sent else "Sent"
 		})
 		room_doc.save()
-
 				
-
 	def create_visitor(self, visitor_name=None, visitor_email=None, visitor_phone=None):
 		# Rocket.Chat server URL
 		rocketchat_url = self.settings.server_url
@@ -256,20 +254,19 @@ class RocketChat():
 			}.get(media_type, 'bin')
 
 			file_name = f"{str(uuid.uuid4())}.{extension}"
-			file_path = get_files_path(f"{file_name}", is_private=False)
+			file_path = get_files_path(f"{file_name}", is_private=True)
 
 			with open(file_path, 'wb') as f:
 				f.write(media_content)
 
 			file_path = file_path.replace('./', "http://")
 			file_path = file_path.replace('/public/', '/')
-			print({"file_pathe": file_path})
 			
 			file_doc = frappe.new_doc('File')
 			file_doc.update({
 				'file_name': f"{file_name}",
 				'file_url': file_path,
-				'is_private': 0,
+				'is_private': 1,
 				'folder': 'Home/Attachments',
 				'attached_to_doctype': 'Rocketchat Livechat User',
 				'attached_to_name': docname,
@@ -282,12 +279,11 @@ class RocketChat():
 			frappe.log_error(message=str(e), title="WhatsApp Media Save Error")
 			return False
 		
-	def upload_file_to_livechat(self, room_id, visitor_token, file_path, description):
+	def upload_file_to_livechat(self, room_id, visitor_token, file_name, description, file_content):
 		upload_endpoint = f"{self.settings.server_url}api/v1/livechat/upload/{room_id}"
 
-		payload = {
-			"file": file_path,
-			"description": description
+		files = {
+			"file": (file_name, file_content, "image/jpeg")
 		}
 
 		headers = {
@@ -295,7 +291,7 @@ class RocketChat():
 		}
 
 		try:
-			response = requests.post(upload_endpoint, headers=headers, json=payload)
+			response = requests.post(upload_endpoint, headers=headers, files=files)
 			response.raise_for_status()
 			return response.json()
 		except requests.exceptions.RequestException as e:
