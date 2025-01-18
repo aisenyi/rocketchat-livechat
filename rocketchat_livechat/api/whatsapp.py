@@ -114,14 +114,14 @@ def whatsapp_webhook():
 					message = change.get("value").get("messages", [])[0]
 					sender = message.get('from')
 					message_type = message.get('type')
+					media_url = f"https://graph.facebook.com/v21.0/"
 
 					if message_type == 'image':
 						media_id = message.get('image', {}).get('id')
 						caption = message.get('image', {}).get('caption')
 						mime_type = message.get('image', {}).get('mime_type')
-						media_url = f"https://graph.facebook.com/v21.0/{media_id}"
+						media_url = f"{media_url}{media_id}"
 						whatsapp_api = WhatsAppAPI()
-						whatsapp_api.access_token
 						media_content = whatsapp_api.download_media(media_url)
 
 						if media_content:
@@ -129,6 +129,48 @@ def whatsapp_webhook():
 								"type": "media",
 								"media": media_content,
 								"text": caption,
+								"media_type": mime_type
+							}
+					elif message_type == "audio":
+						media_id = message.get('audio', {}).get('id')
+						mime_type = message.get('audio', {}).get('mime_type')
+						media_url = f"{media_url}{media_id}"
+						whatsapp_api = WhatsAppAPI()
+						media_content = whatsapp_api.download_media(media_url)
+
+						if media_content:
+							message = {
+								"type": "media",
+								"media": media_content,
+								"text": "",
+								"media_type": mime_type
+							}
+					elif message_type == "document":
+						media_id = message.get('document', {}).get('id')
+						mime_type = message.get('document', {}).get('mime_type')
+						media_url = f"{media_url}{media_id}"
+						whatsapp_api = WhatsAppAPI()
+						media_content = whatsapp_api.download_media(media_url)
+
+						if media_content:
+							message = {
+								"type": "media",
+								"media": media_content,
+								"text": "",
+								"media_type": mime_type
+							}
+					elif message_type == "video":
+						media_id = message.get('video', {}).get('id')
+						mime_type = message.get('video', {}).get('mime_type')
+						media_url = f"{media_url}{media_id}"
+						whatsapp_api = WhatsAppAPI()
+						media_content = whatsapp_api.download_media(media_url)
+						
+						if media_content:
+							message = {
+								"type": "media",
+								"media": media_content,
+								"text": "",
 								"media_type": mime_type
 							}
 					elif message_type == 'text':
