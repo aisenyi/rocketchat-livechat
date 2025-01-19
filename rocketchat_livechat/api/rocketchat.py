@@ -43,9 +43,10 @@ class RocketChat():
 					room_id = room.get("room_id")
 
 		if room_id is not None:
-			if msg_type == "image":
+			if msg_type in ["image", "video", "audio", "document"]:
 				file_path = self.save_media(msg.get("media"), msg.get("media_type"), room_doc.name)
-				message = self.upload_file_to_livechat(room_id, visitor_token, room_doc.name, msg.get("caption"), msg.get("media"))
+				message = self.upload_file_to_livechat(room_id, visitor_token, room_doc.name, msg.get("caption"), 
+										   msg.get("media"), msg.get("media_type"))
 				if message.get("success"):
 					message_sent = True
 			elif msg_type == "text":
@@ -259,8 +260,8 @@ class RocketChat():
 			with open(file_path, 'wb') as f:
 				f.write(media_content)
 
-			file_path = file_path.replace('./', "http://")
-			file_path = file_path.replace('/public/', '/')
+			file_path = file_path.replace(frappe.get_site_path(), "")
+			# file_path = file_path.replace('/private/', '/')
 			
 			file_doc = frappe.new_doc('File')
 			file_doc.update({
@@ -279,11 +280,11 @@ class RocketChat():
 			frappe.log_error(message=str(e), title="WhatsApp Media Save Error")
 			return False
 		
-	def upload_file_to_livechat(self, room_id, visitor_token, file_name, description, file_content):
+	def upload_file_to_livechat(self, room_id, visitor_token, file_name, description, file_content, file_type):
 		upload_endpoint = f"{self.settings.server_url}api/v1/livechat/upload/{room_id}"
 
 		files = {
-			"file": (file_name, file_content, "image/jpeg")
+			"file": (file_name, file_content, file_type)
 		}
 
 		headers = {
