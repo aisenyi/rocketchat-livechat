@@ -301,6 +301,24 @@ class RocketChat():
 				title="RocketChat File Upload Error"
 			)
 			return {"success": False, "error": str(e)}
+		
+	def download_media(self, file_url, visitor_token):
+		download_endpoint = f"{self.settings.server_url}{file_url}"
+
+		headers = {
+			"X-Visitor-Token": visitor_token
+		}
+
+		try:
+			response = requests.get(download_endpoint, headers=headers)
+			response.raise_for_status()
+			return response.content
+		except requests.exceptions.RequestException as e:
+			frappe.log_error(
+				message=f"Media download failed from {file_url}. Error: {e}",
+				title="RocketChat Media Download Error"
+			)
+			return None
 
 @frappe.whitelist()
 def get_rocketchat_settings():
@@ -314,7 +332,6 @@ def rocketchat_webhook():
 
 	if request.method == 'POST':
 		data = json.loads(request.data)
-
 		# Save the webhook log first
 		new_log = frappe.new_doc('Rocketchat Webhook Log')
 		new_log.update({
@@ -336,10 +353,32 @@ def rocketchat_webhook():
 					
 					if user_phone:
 						whatsapp = WhatsAppAPI()
+						message = None
+						msg_type = "text"
+						media = {}
+
+						if latest_message.get('fileUpload'):
+							file_link = latest_message.get('fileUpload').get("publicFilePath")
+							msg_type = whatsapp.get_file_type(latest_message.get("fileUpload").get("type"))
+							media = {
+								"file_path": file_link,
+								"type": latest_message.get("fileUpload").get("type")
+							}
+
+							if latest_message.get("attachments", [])[0].get("description"):
+								description = latest_message.get("attachments", [])[0].get("description")
+								if description != "":
+									media["caption"] = description
+						else:
+							message=latest_message['msg']
+						
 						result = whatsapp.send_message(
 							to_phone_number=user_phone,
-							message=latest_message['msg']
+							message=message,
+							type=msg_type,
+							media = media
 						)
+						return result
 					else:
 						frappe.local.response['http_status_code'] = 200
 						frappe.local.response['message'] = {"status": "OK"}

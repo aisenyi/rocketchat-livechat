@@ -4,6 +4,7 @@ from rocketchat_livechat.api.rocketchat import get_rocketchat_settings
 from frappe import request
 import frappe
 from werkzeug.wrappers import Response
+from io import BytesIO
 
 class WhatsAppAPI:
 	def __init__(self):
@@ -24,15 +25,25 @@ class WhatsAppAPI:
 			'Content-Type': 'application/json'
 		}
 
-	def send_message(self, to_phone_number, message):
+	def send_message(self, to_phone_number, message="", type="text", media=None):
 		payload = {
 			'messaging_product': 'whatsapp',
 			'recipient_type': 'individual',
 			'to': to_phone_number,
-			'type': 'text',
-			'text': {'body': message}
+			'type': type
 		}
 
+		if type != "text":
+			media_id = self.upload_media(media.get("file_path"), media.get("type"))
+			payload[type] = {
+				"id": media_id.get("id"),
+				"caption": media.get("caption")
+			}
+		else:
+			payload["text"] = {
+				'body': message
+			}
+		
 		try:
 			response = requests.post(
 				self.api_url,
@@ -60,6 +71,61 @@ class WhatsAppAPI:
 			frappe.log_error(message=str(e), title="WhatsApp Media Download Error")
 			return None
 		
+	
+	def upload_media(self, file_path, mime_type):
+		url = f"https://graph.facebook.com/v21.0/{self.phone_number_id}/media"
+
+		try:
+			token = file_path.split('token=')[1]
+			file_path = file_path.split('?token=')[0]
+			params = {
+				'token': token
+			}
+			response = requests.get(file_path, params=params)
+			response.raise_for_status()
+			media_content = BytesIO(response.content)
+
+			files = {
+				'file': (file_path, media_content, mime_type)
+			}
+			payload = {
+				'messaging_product': 'whatsapp'
+			}
+
+			uresponse = requests.post(
+				url,
+				headers={'Authorization': f'Bearer {self.access_token}'},
+				data=payload,
+				files=files
+			)
+			uresponse.raise_for_status()
+			return uresponse.json()
+		except requests.exceptions.RequestException as e:
+			frappe.log_error(message=str(frappe.get_traceback()), title="WhatsApp Media Upload Error")
+			return {'error': str(e)}
+		
+	def get_file_type(self, mime_type):
+		mime_types = {
+			'image/jpeg': 'image',
+			'image/png': 'image',
+			'image/gif': 'image',
+			'video/mp4': 'video',
+			'audio/mpeg': 'audio',
+			'application/pdf': 'document',
+			'application/msword': 'document',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'document',
+			'application/vnd.ms-excel': 'document',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'document',
+			'text/plain': 'document',
+			'text/csv': 'document',
+			'application/zip': 'document',
+			'application/x-rar-compressed': 'document',
+			'application/vnd.ms-powerpoint': 'document',
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'document',
+			'image/heic': 'image',
+			'image/heif': 'image'
+		}
+		return mime_types.get(mime_type, 'unknown')
 
 @frappe.whitelist(allow_guest=True)
 def whatsapp_webhook():
