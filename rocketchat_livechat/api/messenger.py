@@ -49,7 +49,7 @@ class FacebookMessenger():
 		if message_type == "text":
 			payload["message"] = {"text": message.get("text")}
 		else:
-			attachment_id = self.upload_media(message.get("file_path"), message_type)
+			attachment_id = self.upload_media(message.get("file_path"), message_type, message.get("type"))
 			attachment_id = attachment_id.get("attachment_id")
 			payload["message"] = {
 				"attachment": {
@@ -65,32 +65,31 @@ class FacebookMessenger():
 		else:
 			frappe.log_error(message=response.json(), title="Facebook Messenger API Error")
 
-	def upload_media(self, file_url, media_type):
+	def upload_media(self, file_url, media_type, mime_type):
 		# Download media from Rocketchat
 		media_content = None
-		# token = file_url.split('token=')[1]
-		# file_url = file_url.split('?token=')[0]
-		# params = {
-		# 	'token': token
-		# }
-		# try:
-		# 	file_response = requests.get(file_url, params=params)
-		# 	file_response.raise_for_status()
-		# 	media_content = BytesIO(file_response.content)
-		# except requests.exceptions.RequestException as e:
-		# 	frappe.log_error(message=str(frappe.get_traceback()), title="Rocketchat Media Download Error")
+		token = file_url.split('token=')[1]
+		file_url = file_url.split('?token=')[0]
+		params = {
+			'token': token
+		}
+		try:
+			file_response = requests.get(file_url, params=params)
+			file_response.raise_for_status()
+			media_content = BytesIO(file_response.content)
+		except requests.exceptions.RequestException as e:
+			frappe.log_error(message=str(frappe.get_traceback()), title="Rocketchat Media Download Error")
 
 
 		url = f"https://graph.facebook.com/v21.0/{self.page_id}/message_attachments?access_token={self.access_token}"
 		files = {
-			"filedata": (f"{media_type}", media_content)
+			"filedata": (file_url, media_content, mime_type)
 		}
 		payload = {
 			"message": json.dumps({
 				"attachment": {
 					"type": media_type,
 					"payload": {
-						"url": file_url,
 						"is_reusable": True
 					}
 				}
