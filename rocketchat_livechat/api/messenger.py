@@ -54,7 +54,9 @@ class FacebookMessenger():
 			payload["message"] = {
 				"attachment": {
 					"type": message_type,
-					"attachment_id": attachment_id
+					"payload": {
+						"attachment_id": attachment_id
+					}
 				}
 			}
 
