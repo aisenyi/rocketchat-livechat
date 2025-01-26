@@ -344,6 +344,29 @@ class RocketChat():
 				title="RocketChat Media Download Error"
 			)
 			return None
+		
+	def get_file_type(self, mime_type):
+		mime_types = {
+			'image/jpeg': 'image',
+			'image/png': 'image',
+			'image/gif': 'image',
+			'video/mp4': 'video',
+			'audio/mpeg': 'audio',
+			'application/pdf': 'document',
+			'application/msword': 'document',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'document',
+			'application/vnd.ms-excel': 'document',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'document',
+			'text/plain': 'document',
+			'text/csv': 'document',
+			'application/zip': 'document',
+			'application/x-rar-compressed': 'document',
+			'application/vnd.ms-powerpoint': 'document',
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'document',
+			'image/heic': 'image',
+			'image/heif': 'image'
+		}
+		return mime_types.get(mime_type, 'unknown')
 
 @frappe.whitelist()
 def get_rocketchat_settings():
@@ -357,6 +380,7 @@ def rocketchat_webhook():
 
 	if request.method == 'POST':
 		data = json.loads(request.data)
+
 		# Save the webhook log first
 		new_log = frappe.new_doc('Rocketchat Webhook Log')
 		new_log.update({
@@ -409,10 +433,32 @@ def rocketchat_webhook():
 						frappe.local.response['message'] = {"status": "OK"}
 						return frappe.local.response["message"]
 			elif source == "Facebook Messenger":
+				rc = RocketChat()
 				if 'agentId' in latest_message:
 					user_id = frappe.db.get_value("Rocketchat Livechat User", room, "id")
 					messenger = FacebookMessenger()
-					messenger.send_to_messenger(user_id, latest_message['msg'])
+					
+					message_type = "text"
+					message = {}
+
+					if latest_message.get('fileUpload'):
+						file_link = latest_message.get('fileUpload').get("publicFilePath")
+						message_type = rc.get_file_type(latest_message.get("fileUpload").get("type"))
+						message = {
+							"file_path": file_link,
+							"type": latest_message.get("fileUpload").get("type")
+						}
+
+						if latest_message.get("attachments", [])[0].get("description"):
+							description = latest_message.get("attachments", [])[0].get("description")
+							if description != "":
+								message["caption"] = description
+					else:
+						message ={
+							"text": latest_message['msg']
+						}
+
+					messenger.send_to_messenger(user_id, message_type, message)
 
 			
 		# Check if the room was closed

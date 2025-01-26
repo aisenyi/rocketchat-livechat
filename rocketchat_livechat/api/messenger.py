@@ -4,6 +4,7 @@ from rocketchat_livechat.api.rocketchat import get_rocketchat_settings
 from frappe import request
 import frappe
 from werkzeug.wrappers import Response
+from io import BytesIO
 
 class FacebookMessenger():
 	def __init__(self):
@@ -33,7 +34,7 @@ class FacebookMessenger():
 			print(f"Failed to fetch user details: {response.json()}")
 			return None
 
-	def send_to_messenger(self, user_id, message):
+	def send_to_messenger(self, user_id, message_type, message):
 		url = f"https://graph.facebook.com/v21.0/{self.page_id}/messages?access_token={self.access_token}"
 		headers = {
 			"Content-Type": "application/json"
@@ -43,10 +44,19 @@ class FacebookMessenger():
 				"id": user_id
 			},
 			"messaging_type": "RESPONSE",
-			"message": {
-				"text": message
-			}
 		}
+
+		if message_type == "text":
+			payload["message"] = {"text": message.get("text")}
+		else:
+			attachment_id = self.upload_media(message.get("file_path"), message_type)
+			attachment_id = attachment_id.get("attachment_id")
+			payload["message"] = {
+				"attachment": {
+					"type": message_type,
+					"attachment_id": attachment_id
+				}
+			}
 
 		response = requests.post(url, headers=headers, json=payload)
 
@@ -54,6 +64,48 @@ class FacebookMessenger():
 			return response.json()
 		else:
 			frappe.log_error(message=response.json(), title="Facebook Messenger API Error")
+
+	def upload_media(self, file_url, media_type):
+		# Download media from Rocketchat
+		media_content = None
+		token = file_url.split('token=')[1]
+		file_url = file_url.split('?token=')[0]
+		params = {
+			'token': token
+		}
+		try:
+			file_response = requests.get(file_url, params=params)
+			file_response.raise_for_status()
+			media_content = BytesIO(file_response.content)
+		except requests.exceptions.RequestException as e:
+			frappe.log_error(message=str(frappe.get_traceback()), title="Rocketchat Media Download Error")
+
+
+		url = f"https://graph.facebook.com/v21.0/{self.page_id}/message_attachments?access_token={self.access_token}"
+		files = {
+			"filedata": (f"media.{media_type}", media_content)
+		}
+		payload = {
+			"message": json.dumps({
+				"attachment": {
+					"type": media_type,
+					"payload": {
+						"is_reusable": True
+					}
+				}
+			})
+		}
+
+		try:
+			response = requests.post(url, files=files, data=payload)
+
+			if response.status_code == 200:
+				return response.json()
+			else:
+				frappe.log_error(message=response.json(), title="Facebook Messenger Media Upload Error")
+				return None
+		except:
+			frappe.log_error(message=str(frappe.get_traceback()), title="Facebook Messenger Media Upload Error")
 
 	def get_attachment(self, url):
 		headers = {}
