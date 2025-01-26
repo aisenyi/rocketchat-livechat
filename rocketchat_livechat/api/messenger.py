@@ -83,8 +83,29 @@ def messenger_webhook():
 		frappe.local.response['message'] = {"error": "Method Not Allowed"}
 		return frappe.local.response['message']
 	
-def handle_incoming_message(data):
+def handle_incoming_message(data=None):
 	from rocketchat_livechat.api.rocketchat import RocketChat
+
+	data = {
+		'object': 'page',
+		'entry': [
+			{
+				'time': 1737711202317,
+				'id': '1701202886814226',
+				'messaging': [
+					{
+						'sender': {'id': '9092096187479591'},
+						'recipient': {'id': '1701202886814226'},
+						'timestamp': 1737709873042,
+						'message': {
+							'mid': 'm_8q1Csg4di6ZuprSetYuiLgVKSY3mgT5RNHvPH8ogyBun4xxaGqUK3efIohSGJaXHdhGcabPEMzVHOU2IzP8LrQ',
+							'text': 'Is this still working?'
+						}
+					}
+				]
+			}
+		]
+	}
 
 	# Save the webhook log first
 	new_log = frappe.new_doc('Facebook Webhook Log')
@@ -96,39 +117,54 @@ def handle_incoming_message(data):
 
 	fb = FacebookMessenger()
 	rc = RocketChat()
+	if not fb.enabled or not rc.enabled:
+		return
+	
 	for entry in data.get("entry", []):
 		for messaging_event in entry.get("messaging", []):
 			if "message" in messaging_event:
 				sender_id = messaging_event["sender"]["id"]
 				message = messaging_event["message"].get("text", "")
 
+				message_doc = {
+					"type": "text",
+					"media": "",
+					"text": message,
+					"media_type": ""
+				}
+
+				rc.send_message("Facebook Messenger", "Text", message_doc, 
+					"ID", sender_id, {})
+
 				# If the user has sent a message before, get the room and send message,
 				# otherwise create a visitor and room
-				room_exists = frappe.db.exists("Rocketchat Livechat User", 
-									{"id_type": "ID", "source": "Facebook Messenger", "id": sender_id, "closed": 0})
-				if room_exists:
-					room_id, visitor_token = frappe.db.get_value("Rocketchat Livechat User", 
-												room_exists, ["room_id", "visitor_token"])
-					rc.send_message_to_room(room_id, visitor_token, message)
-				else:
-					sender_name = fb.get_user_name(sender_id)
-					visitor, visitor_token = rc.create_visitor(visitor_name=sender_name)
-					if visitor.get("success"):
-						room = rc.create_room(visitor_token)
+				# message_doc = {"type": "text", "media": "", "text": message, "media_type": ""}
+				# room_exists = frappe.db.exists("Rocketchat Livechat User", 
+				# 					{"id_type": "ID", "source": "Facebook Messenger", "id": sender_id, "closed": 0})
+				# if room_exists:
+				# 	room_id, visitor_token = frappe.db.get_value("Rocketchat Livechat User", 
+				# 								room_exists, ["room_id", "visitor_token"])
+				# 	rc.send_message_to_room(room_id, visitor_token, message, message_doc)
+				# else:
+				# 	sender_name = fb.get_user_name(sender_id)
+				# 	visitor, visitor_token = rc.create_visitor(visitor_name=sender_name)
+				# 	if visitor.get("success"):
+				# 		room = rc.create_room(visitor_token, 'ID', sender_id, 'Facebook Messenger')
 
-						if room.get("success"):
-							room_id = room.get("room", {}).get("_id")
-							if room_id:
-								new_user = frappe.new_doc("Rocketchat Livechat User")
-								new_user.update({
-									"id_type": "ID",
-									"id": sender_id,
-									"source": "Facebook Messenger",
-									"room_id": room_id,
-									"visitor_token": visitor_token
-								})
-								new_user.insert(ignore_permissions=True)
-							rc.send_message_to_room(room_id, visitor_token, message)
+				# 		if room.get("success"):
+				# 			room_id = room.get("room", {}).get("_id")
+				# 			if room_id:
+				# 				new_user = frappe.new_doc("Rocketchat Livechat User")
+				# 				new_user.update({
+				# 					"id_type": "ID",
+				# 					"id": sender_id,
+				# 					"source": "Facebook Messenger",
+				# 					"room_id": room_id,
+				# 					"visitor_token": visitor_token
+				# 				})
+				# 				new_user.insert(ignore_permissions=True)
+				# 			message_doc = {"type": "text", "media": "", "msg": message, "media_type": ""}
+				# 			rc.send_message_to_room(room_id, visitor_token, message, message_doc)
 
 	frappe.local.response['http_status_code'] = 200
 	frappe.local.response['message'] = "OK"

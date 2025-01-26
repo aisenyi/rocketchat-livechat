@@ -9,7 +9,9 @@
  "field_order": [
   "message",
   "message_date",
+  "type",
   "attachment",
+  "mime_type",
   "status"
  ],
  "fields": [
@@ -37,12 +39,25 @@
    "fieldtype": "Attach",
    "in_list_view": 1,
    "label": "Attachment"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Text\nAudio\nImage\nVideo\nDocument"
+  },
+  {
+   "fieldname": "mime_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mime Type"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-01-17 22:48:13.589676",
+ "modified": "2025-01-25 21:29:36.685006",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Message",

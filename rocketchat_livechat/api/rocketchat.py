@@ -8,12 +8,16 @@ from frappe.utils import get_files_path
 class RocketChat():
 	def __init__(self):
 		self.settings = frappe.get_single("Rocketchat Settings")
+		self.enabled = self.settings.enabled
 
 	def send_message(self, source, msg_type, msg, id_type, id, visitor_info):
+		from rocketchat_livechat.api.messenger import FacebookMessenger
+
 		room_id = None
 		visitor_token = None
 		file_path = None
 		message_sent = False
+		message_doc = {"msg": msg, "type": msg_type, "visitor_info": visitor_info}
 		room_exists = frappe.db.exists("Rocketchat Livechat User", 
 									{"id_type": id_type, "source": source, "id": id, "closed": 0})
 
@@ -31,6 +35,11 @@ class RocketChat():
 			else:
 				room_id = room_doc.get("room_id")
 		else:
+			# If it's facebook messenger, get the user name
+			if source == "Facebook Messenger":
+				fb = FacebookMessenger()
+				visitor_info["visitor_name"] = fb.get_user_name(id)
+
 			visitor, visitor_token = self.create_visitor(visitor_name=visitor_info.get("visitor_name"), 
 												visitor_phone=visitor_info.get("visitor_phone"), 
 												visitor_email=visitor_info.get("visitor_email"))
@@ -50,7 +59,7 @@ class RocketChat():
 				if message.get("success"):
 					message_sent = True
 			elif msg_type == "text":
-				message = self.send_message_to_room(room_id, visitor_token, msg.get("text"))
+				message = self.send_message_to_room(room_id, visitor_token, msg.get("text"), message_doc)
 				if message.get("success"):
 					message_sent = True
 		else:
@@ -102,7 +111,7 @@ class RocketChat():
 				raise Exception(f"""Failed to register live chat visitor. 
 					Status Code: {response.status_code}, Response: {response.json()}""")
 		except Exception as e:
-			frappe.log_error(message=str(e), title="Rocketchat API error")
+			frappe.log_error(message=str(e), title="Rocketchat API error - Create Visitor")
 
 	def create_room(self, visitor_token, id_type, id, source, new_user=True, user=None):
 		rocketchat_url = self.settings.server_url
@@ -150,9 +159,9 @@ class RocketChat():
 				room_doc.save(ignore_permissions=True)
 			return {"success": success, "room_id": room_id, "room_doc": room_doc}
 		except Exception as e:
-			frappe.log_error(message=str(e), title="Rocketchat API error")
+			frappe.log_error(message=str(e), title="Rocketchat API error - Create Room")
 
-	def send_message_to_room(self, room_id, visitor_token, message):
+	def send_message_to_room(self, room_id, visitor_token, message, message_doc):
 		rocketchat_url = self.settings.server_url
 		send_message_endpoint = f"{rocketchat_url}/api/v1/livechat/message"
 
@@ -172,11 +181,25 @@ class RocketChat():
 			if response.status_code == 200:
 				response_data = response.json()
 				return response_data
+			elif response.status_code == 400 and response.json().get("error") == "room-closed":
+				# If the room is closed
+				user = frappe.get_doc("Rocketchat Livechat User", {"room_id": room_id})
+				user.update({"closed": 1})
+				user.save(ignore_permissions=True)
+
+				self.send_message(
+					source=user.source,
+					msg_type= message_doc.get("type"), 
+					msg = message_doc,
+					id_type=user.id_type,
+					id=user.id,
+					visitor_info=message_doc.get("visitor_info", {})
+				)
 			else:
 				raise Exception(f"""Failed to send message to room. 
 						Status Code: {response.status_code}, Response: {response.json()}""")
 		except Exception as e:
-			frappe.log_error(message=str(e), title="Rocketchat API error")
+			frappe.log_error(message=str(frappe.get_traceback()), title="Rocketchat API error - Send Msg to Room")
 
 	def check_online(self):
 		rocketchat_url = self.settings.server_url
@@ -200,7 +223,7 @@ class RocketChat():
 				raise Exception(f"""Failed to check online agents. 
 						Status Code: {response.status_code}, Response: {response.json()}""")
 		except Exception as e:
-			frappe.log_error(message=str(e), title="Rocketchat API error")
+			frappe.log_error(message=str(e), title="Rocketchat API error - Check Online")
 			return False
 		
 	def login(self):
@@ -228,7 +251,7 @@ class RocketChat():
 				raise Exception(f"""Failed to login. 
 						Status Code: {response.status_code}, Response: {response.json()}""")
 		except Exception as e:
-			frappe.log_error(message=str(e), title="Rocketchat API error")
+			frappe.log_error(message=str(e), title="Rocketchat API error - Check Online")
 			return None
 		
 	def save_media(self, media_content, media_type, docname):
@@ -413,7 +436,8 @@ def send_queued_messages():
 				SELECT
 					messages.message, user.id_type, user.id, user.source,
 					user.room_id, user.visitor_token, messages.parent AS user_docname,
-					messages.name AS message_docname
+					messages.name AS message_docname, messages.type, messages.attachment,
+					messages.mime_type
 				FROM 
 					`tabRocketchat Message` AS messages
 				LEFT JOIN
@@ -426,14 +450,40 @@ def send_queued_messages():
 	rc = RocketChat()
 	for message in messages:
 		if message.room_id is not None and message.room_id != "":
-			res = rc.send_message_to_room(message.room_id, message.visitor_token, message.message)
+			media_content = None
+			if message.attachment and message.attachment != "":
+				print({"attachment": message.attachment})
+				file_docname = frappe.db.exists("File", {"file_url": message.attachment})
+				if file_docname:
+					file_doc = frappe.get_doc("File", file_docname)
+					file_path = file_doc.get_full_path()
+					with open(file_path, "rb") as f:
+						media_content = f.read()
+			type = message.type
+			if message.type is None:
+				message.type = "text"
+
+			message_doc = {"type": type, "media": media_content, "msg": message.message, 
+				  "media_type": message.mime_type}
+			
+			res = rc.send_message_to_room(message.room_id, message.visitor_token, message.message, message_doc)
 			if res.get("success"):
 				frappe.db.set_value("Rocketchat Message", message.message_docname, "status", "Sent")
 		else:
+			media_content = None
+			if message.attachment and message.attachment != "":
+				file_doc = frappe.get_doc("File", {"file_url": message.attachment})
+				file_path = file_doc.get_full_path()
+				with open(file_path, "rb") as f:
+					media_content = f.read()
+
+			message_doc = {"type": message.type.lower(), "media": media_content, "msg": message.message, 
+				  "media_type": message.mime_type}
+
 			room = rc.create_room(message.visitor_token, message.id_type, message.id, 
 				  message.source, False, message.user_docname)
 			if room.get("success"):
 				frappe.db.set_value("Rocketchat Livechat User", message.user_docname, "room_id", room.get("room_id"))
-				res = rc.send_message_to_room(room.get("room_id"), message.visitor_token, message.message)
+				res = rc.send_message_to_room(room.get("room_id"), message.visitor_token, message.message, message_doc)
 				if res.get("success"):
 					frappe.db.set_value("Rocketchat Message", message.message_docname, "status", "Sent")
