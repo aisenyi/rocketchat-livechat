@@ -86,26 +86,26 @@ def messenger_webhook():
 def handle_incoming_message(data=None):
 	from rocketchat_livechat.api.rocketchat import RocketChat
 
-	data = {
-		'object': 'page',
-		'entry': [
-			{
-				'time': 1737711202317,
-				'id': '1701202886814226',
-				'messaging': [
-					{
-						'sender': {'id': '9092096187479591'},
-						'recipient': {'id': '1701202886814226'},
-						'timestamp': 1737709873042,
-						'message': {
-							'mid': 'm_8q1Csg4di6ZuprSetYuiLgVKSY3mgT5RNHvPH8ogyBun4xxaGqUK3efIohSGJaXHdhGcabPEMzVHOU2IzP8LrQ',
-							'text': 'Is this still working?'
-						}
-					}
-				]
-			}
-		]
-	}
+	# data = {
+	# 	'object': 'page',
+	# 	'entry': [
+	# 		{
+	# 			'time': 1737711202317,
+	# 			'id': '1701202886814226',
+	# 			'messaging': [
+	# 				{
+	# 					'sender': {'id': '9092096187479591'},
+	# 					'recipient': {'id': '1701202886814226'},
+	# 					'timestamp': 1737709873042,
+	# 					'message': {
+	# 						'mid': 'm_8q1Csg4di6ZuprSetYuiLgVKSY3mgT5RNHvPH8ogyBun4xxaGqUK3efIohSGJaXHdhGcabPEMzVHOU2IzP8LrQ',
+	# 						'text': 'Is this still working?'
+	# 					}
+	# 				}
+	# 			]
+	# 		}
+	# 	]
+	# }
 
 	# Save the webhook log first
 	new_log = frappe.new_doc('Facebook Webhook Log')
