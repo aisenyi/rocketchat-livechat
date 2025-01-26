@@ -69,6 +69,8 @@ class RocketChat():
 		room_doc.append("messages", {
 			"message": msg.get("text"),
 			"attachment": file_path,
+			"type": msg_type.capitalize(),
+			"mime_type": msg.get("media_type"),
 			"message_date": frappe.utils.now(),
 			"status": "Queued" if not message_sent else "Sent"
 		})
@@ -452,7 +454,6 @@ def send_queued_messages():
 		if message.room_id is not None and message.room_id != "":
 			media_content = None
 			if message.attachment and message.attachment != "":
-				print({"attachment": message.attachment})
 				file_docname = frappe.db.exists("File", {"file_url": message.attachment})
 				if file_docname:
 					file_doc = frappe.get_doc("File", file_docname)

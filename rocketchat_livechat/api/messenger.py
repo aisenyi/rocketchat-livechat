@@ -55,6 +55,19 @@ class FacebookMessenger():
 		else:
 			frappe.log_error(message=response.json(), title="Facebook Messenger API Error")
 
+	def get_attachment(self, url):
+		headers = {}
+		if self.access_token:
+			headers["Authorization"] = f"Bearer {self.access_token}"
+
+		response = requests.get(url, headers=headers, stream=True)
+		response.raise_for_status()
+
+		# The MIME type is typically in the "Content-Type" header
+		mime_type = response.headers.get("Content-Type")
+		content = response.content
+		return content, mime_type
+
 
 
 @frappe.whitelist(allow_guest=True)
@@ -87,26 +100,37 @@ def handle_incoming_message(data=None):
 	from rocketchat_livechat.api.rocketchat import RocketChat
 
 	# data = {
-	# 	'object': 'page',
-	# 	'entry': [
+	# 	"object": "page",
+	# 	"entry": [
 	# 		{
-	# 			'time': 1737711202317,
-	# 			'id': '1701202886814226',
-	# 			'messaging': [
+	# 		"time": 1737902374380,
+	# 		"id": "1701202886814226",
+	# 		"messaging": [
+	# 			{
+	# 			"sender": {
+	# 				"id": "9092096187479591"
+	# 			},
+	# 			"recipient": {
+	# 				"id": "1701202886814226"
+	# 			},
+	# 			"timestamp": 1737902372296,
+	# 			"message": {
+	# 				"mid": "m_8491i6m3y-C-oVf_KTGdaQVKSY3mgT5RNHvPH8ogyBs7QV6BDaHZrIKzxcgFvqeUN9Iy7vPc-QqMvN7XCa-qLg",
+	# 				"attachments": [
 	# 				{
-	# 					'sender': {'id': '9092096187479591'},
-	# 					'recipient': {'id': '1701202886814226'},
-	# 					'timestamp': 1737709873042,
-	# 					'message': {
-	# 						'mid': 'm_8q1Csg4di6ZuprSetYuiLgVKSY3mgT5RNHvPH8ogyBun4xxaGqUK3efIohSGJaXHdhGcabPEMzVHOU2IzP8LrQ',
-	# 						'text': 'Is this still working?'
+	# 					"type": "video",
+	# 					"payload": {
+	# 					"url": "https://video.xx.fbcdn.net/v/t42.3356-2/474971437_9031294730294368_7834473196923864702_n.mp4?_nc_cat=111&ccb=1-7&_nc_sid=4f86bc&_nc_ohc=_asK1UVETnsQ7kNvgEoWiKT&_nc_zt=28&_nc_ht=video.xx&_nc_gid=A7FRfDA-28_Bn1m0qOneNYt&oh=03_Q7cD1gHPoxOcS8T7eV0w2kQcv5TMG-AxrXJ-weGXUEReaGB0yw&oe=679826DA"
 	# 					}
 	# 				}
-	# 			]
+	# 				]
+	# 			}
+	# 			}
+	# 		]
 	# 		}
 	# 	]
 	# }
-
+	
 	# Save the webhook log first
 	new_log = frappe.new_doc('Facebook Webhook Log')
 	new_log.update({
@@ -124,17 +148,29 @@ def handle_incoming_message(data=None):
 		for messaging_event in entry.get("messaging", []):
 			if "message" in messaging_event:
 				sender_id = messaging_event["sender"]["id"]
-				message = messaging_event["message"].get("text", "")
 
-				message_doc = {
-					"type": "text",
-					"media": "",
-					"text": message,
-					"media_type": ""
-				}
+				if messaging_event["message"].get("attachments"):
+					for attachment in messaging_event["message"].get("attachments"):
+						message_type =  attachment.get("type")
+						media_content, mime_type = fb.get_attachment(attachment.get("payload", {}).get("url"))
+						message_doc = {
+							"type": message_type,
+							"media": media_content,
+							"media_type": mime_type
+						}
+						rc.send_message("Facebook Messenger", message_type, message_doc, 
+							"ID", sender_id, {})
+				else:
+					message = messaging_event["message"].get("text", "")
+					message_doc = {
+						"type": "text",
+						"media": "",
+						"text": message,
+						"media_type": ""
+					}
 
-				rc.send_message("Facebook Messenger", "Text", message_doc, 
-					"ID", sender_id, {})
+					rc.send_message("Facebook Messenger", "text", message_doc, 
+						"ID", sender_id, {})
 
 				# If the user has sent a message before, get the room and send message,
 				# otherwise create a visitor and room
