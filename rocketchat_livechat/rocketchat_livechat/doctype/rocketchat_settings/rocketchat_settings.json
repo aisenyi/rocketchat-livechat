@@ -101,20 +101,21 @@
   {
    "fieldname": "rocketchat_email",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Rocketchat User Email",
-   "options": "Email",
-   "reqd": 1
+   "options": "Email"
   },
   {
    "fieldname": "rocketchat_password",
    "fieldtype": "Password",
+   "hidden": 1,
    "label": "Rocketchat User Password"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-01-11 23:42:33.197383",
+ "modified": "2025-02-07 18:29:16.281766",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Settings",
