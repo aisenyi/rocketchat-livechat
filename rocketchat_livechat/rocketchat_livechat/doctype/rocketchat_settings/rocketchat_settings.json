@@ -13,10 +13,10 @@
   "rocketchat_password",
   "whatsapp_integration_section",
   "enable_whatsapp_support",
-  "whatsapp_phone_number_id",
   "whatsapp_access_token",
-  "column_break_fkitp",
   "whatsapp_verification_token",
+  "whatsapp_phone_numbers_section",
+  "whatsapp_phone_number",
   "facebook_messenger_settings",
   "enable_messenger_support",
   "messenger_verification_token",
@@ -48,15 +48,6 @@
    "fieldname": "enable_whatsapp_support",
    "fieldtype": "Check",
    "label": "Enable WhatsApp Support"
-  },
-  {
-   "fieldname": "whatsapp_phone_number_id",
-   "fieldtype": "Data",
-   "label": "Phone Number ID"
-  },
-  {
-   "fieldname": "column_break_fkitp",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "whatsapp_access_token",
@@ -110,12 +101,22 @@
    "fieldtype": "Password",
    "hidden": 1,
    "label": "Rocketchat User Password"
+  },
+  {
+   "fieldname": "whatsapp_phone_numbers_section",
+   "fieldtype": "Section Break",
+   "label": "Whatsapp Phone Numbers"
+  },
+  {
+   "fieldname": "whatsapp_phone_number",
+   "fieldtype": "Table",
+   "options": "Whatsapp Phone Number"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-02-07 18:29:16.281766",
+ "modified": "2025-02-16 00:23:56.338578",
  "modified_by": "Administrator",
  "module": "Rocketchat Livechat",
  "name": "Rocketchat Settings",

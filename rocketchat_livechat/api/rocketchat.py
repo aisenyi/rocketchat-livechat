@@ -35,17 +35,20 @@ class RocketChat():
 			else:
 				room_id = room_doc.get("room_id")
 		else:
-			# If it's facebook messenger, get the user name
+			# If it's facebook messenger, get the user name, 
+			# if it's whatsapp get the phone number that the 
+			# message was sent to
 			if source == "Facebook Messenger":
 				fb = FacebookMessenger()
 				visitor_info["visitor_name"] = fb.get_user_name(id)
+
 
 			visitor, visitor_token = self.create_visitor(visitor_name=visitor_info.get("visitor_name"), 
 												visitor_phone=visitor_info.get("visitor_phone"), 
 												visitor_email=visitor_info.get("visitor_email"))
 			if visitor.get("success"):
 				message_sent = False
-				room = self.create_room(visitor_token, id_type, id, source)
+				room = self.create_room(visitor_token, id_type, id, source, visitor_info=visitor_info)
 
 				room_doc = room.get("room_doc")
 				if room.get("success"):
@@ -115,7 +118,7 @@ class RocketChat():
 		except Exception as e:
 			frappe.log_error(message=str(e), title="Rocketchat API error - Create Visitor")
 
-	def create_room(self, visitor_token, id_type, id, source, new_user=True, user=None):
+	def create_room(self, visitor_token, id_type, id, source, new_user=True, user=None, visitor_info={}):
 		rocketchat_url = self.settings.server_url
 		create_room_endpoint = f"{rocketchat_url}/api/v1/livechat/room"
 
@@ -153,6 +156,10 @@ class RocketChat():
 
 				if room_id is not None:
 					room_doc.update({"room_id": room_id})
+
+				if source == "Whatsapp":
+					print("Phone Number: ", visitor_info.get("phone_number_id"))
+					room_doc.update({"whatsapp_phone_number_id": visitor_info.get("phone_number_id")})
 				room_doc.insert(ignore_permissions=True)
 			else:
 				room_doc = frappe.get_doc("Rocketchat Livechat User", user)
@@ -399,9 +406,11 @@ def rocketchat_webhook():
 				# Check if the last message is from the agent
 				if 'agentId' in latest_message:
 					user_phone = data['visitor'].get('phone')
+					whatsapp_phone_number_id = frappe.db.get_value("Rocketchat Livechat User", room, "whatsapp_phone_number_id")
+					print("Phone number ID", whatsapp_phone_number_id)
 					
 					if user_phone:
-						whatsapp = WhatsAppAPI()
+						whatsapp = WhatsAppAPI(whatsapp_phone_number_id)
 						message = None
 						msg_type = "text"
 						media = {}
